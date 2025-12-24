@@ -15,7 +15,7 @@ bootstrap(){
 
 	BOOTSTRAP_ARGS+=(--arch armhf)
 	BOOTSTRAP_ARGS+=(--components "main,contrib,non-free")
-	BOOTSTRAP_ARGS+=(--keyring "${STAGE_DIR}/files/raspberrypi.gpg")
+	BOOTSTRAP_ARGS+=(--no-check-gpg)
 	BOOTSTRAP_ARGS+=("$@")
 	printf -v BOOTSTRAP_STR '%q ' "${BOOTSTRAP_ARGS[@]}"
 

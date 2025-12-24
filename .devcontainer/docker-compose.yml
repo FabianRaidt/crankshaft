@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  crankshaft-dev:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace:cached
+      - pi-gen-work:/workspace/work
+      - pi-gen-deploy:/workspace/deploy
+      - /var/run/docker.sock:/var/run/docker.sock
+    cap_add:
+      - SYS_ADMIN
+    privileged: true
+    command: sleep infinity
+    network_mode: bridge
+    depends_on:
+      - apt-cacher-ng
+
+  apt-cacher-ng:
+    image: sameersbn/apt-cacher-ng:latest
+    restart: unless-stopped
+    ports:
+      - "3142:3142"
+    volumes:
+      - apt-cacher-data:/var/cache/apt-cacher-ng
+
+volumes:
+  pi-gen-work:
+  pi-gen-deploy:
+  apt-cacher-data:

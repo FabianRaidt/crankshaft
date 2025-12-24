@@ -1,0 +1,64 @@
+{
+  "name": "Crankshaft Development",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "crankshaft-dev",
+  "workspaceFolder": "/workspace",
+  
+  // Features to install in the container
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "upgradePackages": true,
+      "username": "vscode",
+      "uid": "1000",
+      "gid": "1000"
+    },
+    "ghcr.io/devcontainers/features/git:1": {
+      "version": "latest",
+      "ppa": true
+    }
+  },
+
+  // Configure tool-specific properties
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-azuretools.vscode-docker",
+        "timonwong.shellcheck",
+        "mads-hartmann.bash-ide-vscode",
+        "foxundermoon.shell-format",
+        "redhat.vscode-yaml",
+        "ms-vscode.makefile-tools"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "files.eol": "\n",
+        "editor.formatOnSave": true
+      }
+    }
+  },
+
+  // Set container-specific environment variables
+  "containerEnv": {
+    "DEBIAN_FRONTEND": "noninteractive"
+  },
+
+  // Mount docker socket for building images
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+
+  // Run commands after container is created
+  "postCreateCommand": "git config --global --add safe.directory /workspace",
+
+  // Expose ports (apt-cacher-ng)
+  "forwardPorts": [3142],
+
+  // Use 'privileged' mode for binfmt support and building images
+  "privileged": true,
+  "capAdd": ["SYS_ADMIN"],
+
+  // Run as root for pi-gen building requirements
+  "remoteUser": "root"
+}
