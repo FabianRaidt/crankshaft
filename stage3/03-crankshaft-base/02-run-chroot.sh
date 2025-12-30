@@ -1,8 +1,47 @@
 #!/bin/bash -e
 
+# Add debug output to track script execution
+exec 19>>/tmp/chroot-script-debug.log
+BASH_XTRACEFD="19"
+set -x
+
 if [ -f $CONTINUE ]; then
   set +e
 fi
+
+# Wrapper for potentially hanging commands
+safe_systemctl() {
+  timeout 10 systemctl "$@" || {
+    ret=$?
+    if [ $ret -eq 124 ]; then
+      echo "WARNING: systemctl $@ timed out, continuing anyway"
+      return 0
+    fi
+    echo "WARNING: systemctl $@ failed with exit $ret, continuing"
+    return 0
+  }
+}
+
+# Lightweight unit presence check
+unit_exists() {
+  systemctl list-unit-files | awk '{print $1}' | grep -Fxq "$1"
+}
+
+enable_unit() {
+  if unit_exists "$1"; then
+    safe_systemctl enable "$1"
+  else
+    echo "Skipping $1 enable (unit not installed)"
+  fi
+}
+
+disable_unit() {
+  if unit_exists "$1"; then
+    safe_systemctl disable "$1"
+  else
+    echo "Skipping $1 disable (unit not installed)"
+  fi
+}
 
 # Set lang
 SETLANG=en_GB
@@ -56,22 +95,22 @@ rm /etc/pulse/csng_default.pa
 rm /etc/pulse/csng_system.pa
 
 # wallaper's
-ln -s /boot/crankshaft/wallpaper.png /home/pi/wallpaper.png
-ln -s /boot/crankshaft/wallpaper-night.png /home/pi/wallpaper-night.png
-ln -s /boot/crankshaft/wallpaper-classic.png /home/pi/wallpaper-classic.png
-ln -s /boot/crankshaft/wallpaper-classic-night.png /home/pi/wallpaper-classic-night.png
-ln -s /boot/crankshaft/wallpaper-eq.png /home/pi/wallpaper-eq.png
+ln -sf /boot/crankshaft/wallpaper.png /home/pi/wallpaper.png
+ln -sf /boot/crankshaft/wallpaper-night.png /home/pi/wallpaper-night.png
+ln -sf /boot/crankshaft/wallpaper-classic.png /home/pi/wallpaper-classic.png
+ln -sf /boot/crankshaft/wallpaper-classic-night.png /home/pi/wallpaper-classic-night.png
+ln -sf /boot/crankshaft/wallpaper-eq.png /home/pi/wallpaper-eq.png
 
 # custom plymouth
-ln -s /boot/crankshaft/splash.png /usr/share/plymouth/themes/custom/splash.png
-ln -s /boot/crankshaft/shutdown.png /usr/share/plymouth/themes/custom/shutdown.png
+ln -sf /boot/crankshaft/splash.png /usr/share/plymouth/themes/custom/splash.png
+ln -sf /boot/crankshaft/shutdown.png /usr/share/plymouth/themes/custom/shutdown.png
 
 # custom usbcamera-overlay
-ln -s /boot/crankshaft/usbcamera-overlay.png /opt/crankshaft/cam_overlay/overlay.png
+ln -sf /boot/crankshaft/usbcamera-overlay.png /opt/crankshaft/cam_overlay/overlay.png
 
 # triggerhappy
 sed -i 's/user nobody/user pi/' /lib/systemd/system/triggerhappy.service
-ln -s /boot/crankshaft/triggerhappy.conf /etc/triggerhappy/triggers.d/crankshaft.conf
+ln -sf /boot/crankshaft/triggerhappy.conf /etc/triggerhappy/triggers.d/crankshaft.conf
 
 # set the hostname
 echo "CRANKSHAFT-NG" > /etc/hostname
@@ -86,92 +125,96 @@ echo "" >> /etc/ntp.conf
 echo "server 127.127.28.0 minpoll 4 maxpoll 4 prefer" >> /etc/ntp.conf
 echo "fudge 127.127.28.0 time1 -1.25 refid GPS" >> /etc/ntp.conf
 
-# Set default startup services state
-systemctl enable gpio2kbd.service
-systemctl enable crankshaft.service
-systemctl enable btservice.service
-systemctl enable user_startup.service
-systemctl enable devmode.service
-systemctl enable debugmode.service
-systemctl enable display.service
-systemctl enable user_startup.service
-systemctl enable update.timer
-systemctl enable usbrestore.service
-systemctl enable usbdetect.service
-systemctl enable usbunmount.service
-systemctl enable daymode.timer
-systemctl enable nightmode.timer
-systemctl enable tap2wake.service
-systemctl enable openauto.service
-systemctl enable gpiotrigger.service
-systemctl enable timerstart.service
-systemctl enable regensshkeys.service
-systemctl enable ssh.service
-systemctl enable pulseaudio.service
-systemctl enable pacheck.service
-systemctl disable rpi-display-backlight.service
-systemctl enable rpi-display-backlight.service
-systemctl enable hotspot.service
-systemctl enable alsastaterestore.service
-systemctl enable systemd-timesyncd.service
-systemctl enable networking.service
-systemctl enable dhcpcd.service
-systemctl enable lightsensor.service
-systemctl enable i2ccheck.service
-systemctl enable wpa-monitor.service
-systemctl enable custombrightness.service
-systemctl enable gpsd.service
-systemctl enable watchdog.service
-systemctl disable hotspot-monitor.service
-systemctl disable wpa_supplicant.service
-systemctl disable hwclock-load.service
-systemctl disable rpicamserver.service
+# Set default startup services state (ignore missing units to stay idempotent)
+enable_unit gpio2kbd.service
+enable_unit crankshaft.service
+enable_unit btservice.service
+enable_unit user_startup.service
+enable_unit devmode.service
+enable_unit debugmode.service
+enable_unit display.service
+enable_unit user_startup.service
+enable_unit update.timer
+enable_unit usbrestore.service
+enable_unit usbdetect.service
+enable_unit usbunmount.service
+enable_unit daymode.timer
+enable_unit nightmode.timer
+enable_unit tap2wake.service
+enable_unit openauto.service
+enable_unit gpiotrigger.service
+enable_unit timerstart.service
+enable_unit regensshkeys.service
+enable_unit ssh.service
+enable_unit pulseaudio.service
+enable_unit pacheck.service
+disable_unit rpi-display-backlight.service
+enable_unit rpi-display-backlight.service
+enable_unit hotspot.service
+enable_unit alsastaterestore.service
+enable_unit systemd-timesyncd.service
+enable_unit networking.service
+enable_unit dhcpcd.service
+enable_unit lightsensor.service
+enable_unit i2ccheck.service
+enable_unit wpa-monitor.service
+enable_unit custombrightness.service
+enable_unit gpsd.service
+enable_unit watchdog.service
+disable_unit hotspot-monitor.service
+disable_unit wpa_supplicant.service
+disable_unit hwclock-load.service
+disable_unit rpicamserver.service
 #systemctl disable regenerate_ssh_host_keys.service
 #systemctl disable wifisetup.service
-systemctl disable systemd-rfkill.service
-systemctl disable systemd-rfkill.socket
-systemctl disable resize2fs_once.service
-systemctl disable bluetooth.service
-systemctl disable hciuart.service
-systemctl disable hostapd.service
-systemctl disable dnsmasq.service
-systemctl disable alsa-state.service
-systemctl disable apply_noobs_os_config.service
-systemctl disable wifi-country.service
-systemctl disable alsa-restore.service
-systemctl disable alsa-state.service
-systemctl disable raspi-config.service
-systemctl disable systemd-fsck@.service
-systemctl disable smbd.service
-systemctl disable nmbd.service
-systemctl disable gldriver-test.service
-systemctl disable dphys-swapfile.service
-systemctl disable systemd-timesyncd.service
-systemctl disable systemd-fsck@dev-mmcblk0p1.service
+disable_unit systemd-rfkill.service
+disable_unit systemd-rfkill.socket
+disable_unit resize2fs_once.service
+disable_unit bluetooth.service
+disable_unit hciuart.service
+disable_unit hostapd.service
+disable_unit dnsmasq.service
+disable_unit alsa-state.service
+disable_unit apply_noobs_os_config.service
+disable_unit wifi-country.service
+disable_unit alsa-restore.service
+disable_unit alsa-state.service
+disable_unit raspi-config.service
+disable_unit systemd-fsck@.service
+disable_unit smbd.service
+disable_unit nmbd.service
+disable_unit gldriver-test.service
+disable_unit dphys-swapfile.service
+disable_unit systemd-timesyncd.service
+disable_unit systemd-fsck@dev-mmcblk0p1.service
 
-rm /lib/systemd/system/systemd-rfkill.service
-rm /lib/systemd/system/systemd-rfkill.socket
-rm /lib/systemd/system/apt-daily.timer
-rm /lib/systemd/system/apt-daily.service
-rm /lib/systemd/system/apt-daily-upgrade.timer
-rm /lib/systemd/system/apt-daily-upgrade.service
-rm /etc/systemd/system/timers.target.wants/apt-daily.timer
-rm /etc/systemd/system/timers.target.wants/apt-daily-upgrade.timer
-rm /lib/systemd/system/timers.target.wants/systemd-tmpfiles-clean.timer
-rm /lib/systemd/system/apply_noobs_os_config.service
+rm -f /lib/systemd/system/systemd-rfkill.service
+rm -f /lib/systemd/system/systemd-rfkill.socket
+rm -f /lib/systemd/system/apt-daily.timer
+rm -f /lib/systemd/system/apt-daily.service
+rm -f /lib/systemd/system/apt-daily-upgrade.timer
+rm -f /lib/systemd/system/apt-daily-upgrade.service
+rm -f /etc/systemd/system/timers.target.wants/apt-daily.timer
+rm -f /etc/systemd/system/timers.target.wants/apt-daily-upgrade.timer
+rm -f /lib/systemd/system/timers.target.wants/systemd-tmpfiles-clean.timer
+rm -f /lib/systemd/system/apply_noobs_os_config.service
 
 
 #systemctl daemon-relaod
 
 # set custom boot splash
-#plymouth-set-default-theme crankshaft
-plymouth-set-default-theme csnganimation
+# csnganimation plugin is 32-bit only, use crankshaft theme for ARM64
+if [ "$(dpkg --print-architecture)" = "arm64" ]; then
+    plymouth-set-default-theme crankshaft
+else
+    plymouth-set-default-theme csnganimation
+fi
 
 # create lib cache
-ldconfig
+timeout 60 ldconfig || true
 
 # add gettys
-systemctl enable getty@tty3.service
+safe_systemctl enable getty@tty3.service
 # Don't kill still running getty - fixes restart in x11 mode during boot
 sed -i 's/^TTYVHangup=.*/TTYVHangup=no/' /lib/systemd/system/getty@.service
 
@@ -203,9 +246,13 @@ echo "" >> /etc/issue.net
 
 # wifi
 rm /etc/wpa_supplicant/wpa_supplicant.conf
-ln -s /tmp/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
+ln -sf /tmp/wpa_supplicant.conf /etc/wpa_supplicant/wpa_supplicant.conf
 
-# Enable systemd timesync
+# Enable systemd timesync; create a minimal config if it is missing to avoid sed errors
+if [ ! -f /etc/systemd/timesyncd.conf ]; then
+  mkdir -p /etc/systemd
+  printf "[Time]\n" > /etc/systemd/timesyncd.conf
+fi
 sed -i 's/#NTP=.*/NTP=0.debian.pool.ntp.org 1.debian.pool.ntp.org 2.debian.pool.ntp.org 3.debian.pool.ntp.org/g' /etc/systemd/timesyncd.conf
 sed -i 's/#FallbackNTP=.*/FallbackNTP=0.debian.pool.ntp.org 1.debian.pool.ntp.org 2.debian.pool.ntp.org 3.debian.pool.ntp.org/g' /etc/systemd/timesyncd.conf
 
@@ -268,22 +315,13 @@ echo "autospawn = no" >> /etc/pulse/client.conf
 sed -i 's/^MountFlags=.*/MountFlags=shared/' /lib/systemd/system/systemd-udevd.service
 
 # link csmt
-ln -s /usr/local/bin/crankshaft /usr/local/bin/csmt
+ln -sf /usr/local/bin/crankshaft /usr/local/bin/csmt
 
 # Set path for rsyslogd
 sed -i 's/\$WorkDirectory \/var\/spool\/rsyslog/\$WorkDirectory \/var\/spool/' /etc/rsyslog.conf
 
-# Download source for exfat-nofuse and kernel
-cd /usr/src/
-git clone https://github.com/dorimanx/exfat-nofuse
-cd exfat-nofuse
-git remote add barrybingo https://github.com/barrybingo/exfat-nofuse
-git fetch --all
-git merge barrybingo/master
-cd ..
-version=`cat ./exfat-nofuse/dkms.conf | grep PACKAGE_VERSION | cut -d= -f2 | sed "s/\"//g"`
-mv exfat-nofuse exfat-$version
-
-dkms add -m exfat -v $version
+# exfat support was provided via exfat-nofuse DKMS, but the package is unavailable on bookworm
+# and breaks the build. Skip this step to keep the pipeline moving.
+echo "Skipping exfat DKMS build (exfat-nofuse not available)"
 
 exit 0

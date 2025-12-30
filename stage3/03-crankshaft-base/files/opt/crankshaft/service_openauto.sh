@@ -84,6 +84,15 @@ if [ -f /tmp/start_openauto ]; then
         echo "[${CYAN}${BOLD} INFO ${RESET}] Starting OpenAuto in EGL Mode" >/dev/tty3
         echo "[${CYAN}${BOLD} INFO ${RESET}] *******************************************************" >/dev/tty3
         sed -i "s/^OMXLayerIndex=0.*$/OMXLayerIndex=2/" /tmp/openauto.ini
+        
+        # Qt5 EGLFS KMS configuration for Pi 5 - force use of card1 (vc4-drm)
+        export QT_QPA_EGLFS_KMS_CONFIG=/opt/crankshaft/qt5kms.json
+        
+        # Fix DRM render node permissions
+        if [ -e /dev/dri/renderD128 ]; then
+            sudo chmod 666 /dev/dri/renderD128
+        fi
+        
         # Starts the Autoapp (OpenAuto) main program
         echo "Session start ****************************************************************************" >> /tmp/openauto.log
         echo "******************************************************************************************" >> /tmp/openauto.log

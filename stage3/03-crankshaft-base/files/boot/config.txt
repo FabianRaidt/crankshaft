@@ -85,6 +85,13 @@ max_framebuffers=2
 # GPU Mem
 gpu_mem=128
 
+[pi5]
+# Pi 5 specific - KMS only (no FKMS)
+dtoverlay=vc4-kms-v3d-pi5
+kernel=kernel_2712.img
+gpu_mem=128
+max_framebuffers=2
+
 [all]
 
 

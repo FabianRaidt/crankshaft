@@ -1,1 +1,1 @@
-libraspberrypi-bin libraspberrypi0 raspi-config
+raspi-utils-core raspi-utils-dt libdtovl0

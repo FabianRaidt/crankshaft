@@ -1,19 +1,25 @@
-FROM --platform=linux/i386 debian:buster
+FROM debian:bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Use Debian archive repository for oldoldstable (buster)
-RUN echo "deb http://archive.debian.org/debian/ buster main" > /etc/apt/sources.list && \
-    echo "deb http://archive.debian.org/debian-security buster/updates main" >> /etc/apt/sources.list && \
-    echo "Acquire::Check-Valid-Until false;" > /etc/apt/apt.conf.d/99no-check-valid-until
+RUN rm -f /etc/apt/sources.list.d/debian.sources && \
+    echo "deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
+    echo "deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware" >> /etc/apt/sources.list
 
-RUN apt-get -y update && \
-    apt-get -y install \
-        git vim parted \
-        quilt coreutils qemu-user-static debootstrap zerofree zip dosfstools \
-        bsdtar libcap2-bin rsync grep udev xz-utils curl xxd file kmod bc\
+RUN apt-get update && \
+    apt-get install -y -t bookworm-backports qemu-user-static udev && \
+    apt-get install -y \
+    git vim parted quilt coreutils \
+    debootstrap zerofree zip dosfstools \
+    libarchive-tools libcap2-bin rsync grep \
+    xz-utils curl xxd file kmod bc \
     && rm -rf /var/lib/apt/lists/*
 
+# Copy project files into image
 COPY . /pi-gen/
 
-VOLUME [ "/pi-gen/work", "/pi-gen/deploy"]
+WORKDIR /pi-gen
+
+VOLUME ["/pi-gen/work", "/pi-gen/deploy"]

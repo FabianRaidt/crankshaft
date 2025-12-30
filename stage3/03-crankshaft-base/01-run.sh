@@ -62,6 +62,7 @@ install -m 755 files/etc/rc.local                                       "${ROOTF
 install -m 644 files/etc/issue                                          "${ROOTFS_DIR}/etc/"
 install -m 644 files/etc/issue.net                                      "${ROOTFS_DIR}/etc/"
 install -m 644 files/etc/motd                                           "${ROOTFS_DIR}/etc/"
+install -d "${ROOTFS_DIR}/etc/rsyslog.d"
 install -m 644 files/etc/rsyslog.d/disable-logspam.conf                 "${ROOTFS_DIR}/etc/rsyslog.d/"
 
 install -d "${ROOTFS_DIR}/etc/initramfs-tools/conf.d"
@@ -81,6 +82,7 @@ install -m 644 files/etc/samba/smb.conf                                 "${ROOTF
 
 # /opt
 install -d "${ROOTFS_DIR}/opt/crankshaft"
+install -m 644 files/opt/crankshaft/qt5kms.json                         "${ROOTFS_DIR}/opt/crankshaft/"
 install -m 755 files/opt/crankshaft/crankshaft_default_env.sh           "${ROOTFS_DIR}/opt/crankshaft/"
 install -m 755 files/opt/crankshaft/crankshaft_system_env.sh            "${ROOTFS_DIR}/opt/crankshaft/"
 install -m 755 files/opt/crankshaft/service_crankshaft.sh               "${ROOTFS_DIR}/opt/crankshaft/"
@@ -158,6 +160,7 @@ install -m 644 files/usr/share/plymouth/themes/csnganimation/lock.png           
 install -m 644 files/usr/share/plymouth/themes/csnganimation/logo.png                 "${ROOTFS_DIR}/usr/share/plymouth/themes/csnganimation/"
 install -m 644 files/usr/share/plymouth/themes/csnganimation/progress_bar.png         "${ROOTFS_DIR}/usr/share/plymouth/themes/csnganimation/"
 install -m 644 files/usr/share/plymouth/themes/csnganimation/progress_box.png         "${ROOTFS_DIR}/usr/share/plymouth/themes/csnganimation/"
+install -d "${ROOTFS_DIR}/usr/lib/arm-linux-gnueabihf/plymouth"
 install -m 644 files/usr/lib/arm-linux-gnueabihf/plymouth/csnganimation.so            "${ROOTFS_DIR}/usr/lib/arm-linux-gnueabihf/plymouth/"
 install -d "${ROOTFS_DIR}/usr/share/plymouth/themes/custom"
 install -m 644 files/usr/share/plymouth/themes/custom/custom.plymouth       "${ROOTFS_DIR}/usr/share/plymouth/themes/custom/"

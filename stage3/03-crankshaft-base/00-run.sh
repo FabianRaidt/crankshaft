@@ -2,6 +2,19 @@
 
 # place files from prebuilt repo to correct place for normal build process
 
+# Detect architecture for selecting correct prebuilt binaries
+ARCH=$(on_chroot <<'EOF'
+dpkg --print-architecture
+EOF
+)
+if [ "$ARCH" = "arm64" ] || [ "$ARCH" = "aarch64" ]; then
+	ARCH_SUFFIX="arm64"
+	echo "Using ARM64 prebuilt binaries"
+else
+	ARCH_SUFFIX="armv7"
+	echo "Using ARMv7 prebuilt binaries"
+fi
+
 # udev rules updates
 cp -f $BASE_DIR/prebuilts/udev/51-android.rules files/etc/udev/rules.d/51-android.master
 
@@ -42,11 +55,12 @@ if [ ! -d files/opt/crankshaft/cam_overlay ]; then
     mkdir files/opt/crankshaft/cam_overlay
 fi
 cp -f $BASE_DIR/prebuilts/cam_overlay/cam_overlay.bin files/opt/crankshaft/cam_overlay/cam_overlay.bin
+chmod 777 files/opt/crankshaft/cam_overlay/cam_overlay.bin
+
 cp -f $BASE_DIR/prebuilts/cam_overlay/overlay.png files/opt/crankshaft/cam_overlay/overlay.png
 cp -f $BASE_DIR/prebuilts/cam_overlay/shader-YUYV.frag files/opt/crankshaft/cam_overlay/shader-YUYV.frag
 cp -f $BASE_DIR/prebuilts/cam_overlay/shader.frag files/opt/crankshaft/cam_overlay/shader.frag
 cp -f $BASE_DIR/prebuilts/cam_overlay/shader.vert files/opt/crankshaft/cam_overlay/shader.vert
-chmod 777 files/opt/crankshaft/cam_overlay/cam_overlay.bin
 
 # openauto updates
 cp -f $BASE_DIR/prebuilts/openauto/autoapp files/usr/local/bin/autoapp
@@ -54,14 +68,15 @@ cp -f $BASE_DIR/prebuilts/openauto/autoapp_helper files/usr/local/bin/autoapp_he
 cp -f $BASE_DIR/prebuilts/openauto/btservice files/usr/local/bin/btservice
 cp -f $BASE_DIR/prebuilts/openauto/libaasdk.so files/usr/local/lib/libaasdk.so
 cp -f $BASE_DIR/prebuilts/openauto/libaasdk_proto.so files/usr/local/lib/libaasdk_proto.so
-cp -f $BASE_DIR/prebuilts/usbreset/usbreset files/usr/local/bin/usbreset
 # checksum files
 cp -f $BASE_DIR/prebuilts/openauto/autoapp.md5 files/usr/local/bin/autoapp.md5
 cp -f $BASE_DIR/prebuilts/openauto/autoapp_helper.md5 files/usr/local/bin/autoapp_helper.md5
 cp -f $BASE_DIR/prebuilts/openauto/btservice.md5 files/usr/local/bin/btservice.md5
 cp -f $BASE_DIR/prebuilts/openauto/libaasdk.so.md5 files/usr/local/lib/libaasdk.so.md5
 cp -f $BASE_DIR/prebuilts/openauto/libaasdk_proto.so.md5 files/usr/local/lib/libaasdk_proto.so.md5
-cp -f $BASE_DIR/prebuilts/usbreset/usbreset.md5 files/usr/local/bin/usbreset.md5
+
+cp -f $BASE_DIR/prebuilts/usbreset/usbreset files/usr/local/bin/usbreset
+cp -f $BASE_DIR/prebuilts/usbreset/usbreset.md5 files/usr/local/bin/usbreset.md5 2>/dev/null || touch files/usr/local/bin/usbreset.md5
 
 chmod 777 files/usr/local/bin/autoapp
 chmod 777 files/usr/local/bin/autoapp_helper
@@ -79,4 +94,17 @@ chmod 644 files/usr/local/bin/usbreset.md5
 
 # qt5
 rm -rf files/qt5/Qt5_OpenGLES2.tar.xz
-cat $BASE_DIR/prebuilts/qt5/Qt_5151_OpenGLES2.tar.xz* > files/qt5/Qt5_OpenGLES2.tar.xz
+if [ "$ARCH_SUFFIX" = "arm64" ]; then
+    # ARM64: Check for arm64 prebuilt, warn if missing
+    if [ -f "$BASE_DIR/prebuilts/qt5/Qt_51518_aarch64_OpenGLES2.tar.xz.part00" ]; then
+        cat $BASE_DIR/prebuilts/qt5/Qt_51518_aarch64_OpenGLES2.tar.xz* > files/qt5/Qt5_OpenGLES2.tar.xz
+        echo "Using ARM64 Qt5 prebuilt"
+    else
+        echo "WARNING: ARM64 Qt5 prebuilt not found in prebuilts/qt5/"
+        echo "Stage4 will handle Qt5 installation"
+        touch files/qt5/Qt5_OpenGLES2.tar.xz
+    fi
+else
+    # ARMv7/ARMv6: Use existing prebuilts
+    cat $BASE_DIR/prebuilts/qt5/Qt_5151_OpenGLES2.tar.xz* > files/qt5/Qt5_OpenGLES2.tar.xz
+fi

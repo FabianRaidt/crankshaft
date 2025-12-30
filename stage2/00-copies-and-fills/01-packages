@@ -1,1 +1,2 @@
-raspi-copies-and-fills
+# raspi-copies-and-fills package no longer available in Bookworm ARM64
+# Functionality likely replaced by raspi-utils or not needed

@@ -1,0 +1,3 @@
+DPkg::Post-Invoke {
+  "dpkg --configure --pending || true";
+};

@@ -1,0 +1,5 @@
+APT::Get::AllowUnauthenticated "false";
+Dpkg::Options {
+   "--force-confdef";
+   "--force-confold";
+};

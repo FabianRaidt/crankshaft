@@ -1,0 +1,35 @@
+#!/bin/bash -e
+
+# qt5 from prebuilts - architecture detection (do not assume prerun export persists)
+ARCH_IN="${ARCH_SUFFIX:-${APT_ARCH:-}}"
+case "$ARCH_IN" in
+    arm64|aarch64|aarch64_be) ARCH_SUFFIX=arm64 ;;
+    armv7|armv7l) ARCH_SUFFIX=armv7 ;;
+    "") ARCH_SUFFIX=arm64 ;;
+esac
+
+if [ "$ARCH_SUFFIX" = "arm64" ]; then
+    # ARM64: Check if prebuilt exists, otherwise warn
+    if [ -f "$BASE_DIR/prebuilts/qt5/Qt_5151_arm64_OpenGLES2.tar.xz.part00" ]; then
+        cat $BASE_DIR/prebuilts/qt5/Qt_5151_arm64_OpenGLES2.tar.xz* > files/qt5/Qt5_OpenGLES2.tar.xz
+        echo "Using ARM64 Qt5 prebuilt"
+    else
+        echo "WARNING: ARM64 Qt5 prebuilt not found!"
+        echo "Qt5 will NOT be installed. OpenAuto will not work!"
+        echo "You need to build Qt5 for ARM64 first."
+        echo "See prebuilts/buildsystem/4_build_qt_latest.sh"
+        # Create empty file to prevent build error
+        touch files/qt5/Qt5_OpenGLES2.tar.xz
+    fi
+else
+    # ARMv7: Use existing prebuilt
+    cat $BASE_DIR/prebuilts/qt5/Qt_5151_armv7l_OpenGLES2.tar.xz* > files/qt5/Qt5_OpenGLES2.tar.xz
+    echo "Using ARMv7 Qt5 prebuilt"
+fi
+
+# Extract Qt5 if archive is not empty
+if [ -s files/qt5/Qt5_OpenGLES2.tar.xz ]; then
+    tar -xf files/qt5/Qt5_OpenGLES2.tar.xz -C ${ROOTFS_DIR}/
+else
+    echo "Skipping Qt5 extraction - archive is empty"
+fi
