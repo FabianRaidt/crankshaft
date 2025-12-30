@@ -1,0 +1,69 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index aaf96f5..831cd6a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -107,11 +107,19 @@ if (NOPI)
+     message(STATUS "Configuring for Non-Raspberry Pi")
+ else()
+     message(STATUS "Configuring for RaspberryPi")
+-    add_definitions(-DUSE_OMX -DOMX_SKIP64BIT -DRASPBERRYPI3)
+-    set(BCM_HOST_LIBRARIES "/opt/vc/lib/libbcm_host.so")
+-    set(BCM_HOST_INCLUDE_DIRS "/opt/vc/include")
+-    set(ILCLIENT_INCLUDE_DIRS "/opt/vc/src/hello_pi/libs/ilclient")
+-    set(ILCLIENT_LIBRARIES "/opt/vc/src/hello_pi/libs/ilclient/libilclient.a;/opt/vc/lib/libvcos.so;/opt/vc/lib/libvcilcs.a;/opt/vc/lib/libvchiq_arm.so")
++    if(EXISTS "/opt/vc/src/hello_pi/libs/ilclient/ilclient.h")
++        add_definitions(-DUSE_OMX -DOMX_SKIP64BIT -DRASPBERRYPI3)
++        set(BCM_HOST_LIBRARIES "/opt/vc/lib/libbcm_host.so")
++        set(BCM_HOST_INCLUDE_DIRS "/opt/vc/include")
++        set(ILCLIENT_INCLUDE_DIRS "/opt/vc/src/hello_pi/libs/ilclient")
++        set(ILCLIENT_LIBRARIES "/opt/vc/src/hello_pi/libs/ilclient/libilclient.a;/opt/vc/lib/libvcos.so;/opt/vc/lib/libvcilcs.a;/opt/vc/lib/libvchiq_arm.so")
++    else()
++        message(STATUS "OMX disabled (/opt/vc ilclient.h not found); using Qt video output")
++        set(BCM_HOST_LIBRARIES "")
++        set(BCM_HOST_INCLUDE_DIRS "")
++        set(ILCLIENT_INCLUDE_DIRS "")
++        set(ILCLIENT_LIBRARIES "")
++    endif()
+ endif ()
+ 
+ # Building on a Mac requires Abseil
+diff --git a/src/autoapp/Projection/QtVideoOutput.cpp b/src/autoapp/Projection/QtVideoOutput.cpp
+index eb578b1..984b166 100644
+--- a/src/autoapp/Projection/QtVideoOutput.cpp
++++ b/src/autoapp/Projection/QtVideoOutput.cpp
+@@ -17,6 +17,8 @@
+ */
+ 
+ #include <QApplication>
++#include <QGuiApplication>
++#include <QScreen>
+ #include <f1x/openauto/autoapp/Projection/QtVideoOutput.hpp>
+ #include <f1x/openauto/Common/Log.hpp>
+ 
+@@ -69,14 +71,24 @@ void QtVideoOutput::write(uint64_t, const aasdk::common::DataConstBuffer& buffer
+ 
+ void QtVideoOutput::onStartPlayback()
+ {
++    const QScreen* primaryScreen = QGuiApplication::primaryScreen();
++    const QRect screenGeometry = primaryScreen == nullptr ? QRect() : primaryScreen->geometry();
++
+     videoWidget_->setAttribute(Qt::WA_OpaquePaintEvent, true);
+     videoWidget_->setAttribute(Qt::WA_NoSystemBackground, true);
+     videoWidget_->setAspectRatioMode(Qt::IgnoreAspectRatio);
+     videoWidget_->setFocus();
+     videoWidget_->setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
++    if(!screenGeometry.isNull())
++    {
++        videoWidget_->setGeometry(screenGeometry);
++    }
++    videoWidget_->showFullScreen();
++    if(!screenGeometry.isNull())
++    {
++        videoWidget_->setGeometry(screenGeometry);
++    }
+     videoWidget_->raise();
+-    videoWidget_->setFullScreen(true);
+-    videoWidget_->show();
+     videoWidget_->activateWindow();
+ 
+     mediaPlayer_->setVideoOutput(videoWidget_.get());
